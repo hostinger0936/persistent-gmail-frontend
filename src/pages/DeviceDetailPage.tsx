@@ -634,46 +634,44 @@ export default function DeviceDetailPage() {
                         )}
                       </div>
 
-                      {/* ═══ APP NOTIFICATIONS (WhatsApp, Telegram, Gmail) ═══ */}
-                      <SurfaceCard className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="text-[14px] font-extrabold text-slate-900">App Notifications</div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={loadAppNotifications} className="h-8 rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50" type="button">Refresh</button>
-                            {appNotifs.length > 0 && (
-                              <button onClick={handleDeleteAllAppNotifs} className="h-8 rounded-xl border border-rose-200 bg-rose-50 px-3 text-[11px] font-bold text-rose-700 hover:bg-rose-100" type="button">Delete All</button>
-                            )}
-                          </div>
-                        </div>
+                      {/* ═══ APP NOTIFICATIONS — SEPARATE SECTIONS ═══ */}
+                      {APP_FILTERS.map((app) => {
+                        const count = getNotifCount(app.key);
+                        const isExpanded = selectedApp === app.key;
+                        const appNotifsList = appNotifs.filter((n: any) => {
+                          const pkg = safeString(n.packageName).toLowerCase();
+                          if (app.key === "whatsapp") return pkg.includes("com.whatsapp");
+                          return pkg === app.pkg;
+                        });
 
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                          {APP_FILTERS.map((app) => {
-                            const count = getNotifCount(app.key);
-                            const isActive = selectedApp === app.key;
-                            return (
-                              <button
-                                key={app.key}
-                                type="button"
-                                onClick={() => setSelectedApp(isActive ? null : app.key)}
-                                className={[
-                                  "relative flex flex-col items-center rounded-2xl border p-3 transition",
-                                  isActive ? `${app.border} ${app.bg}` : "border-slate-200 bg-white hover:bg-slate-50",
-                                ].join(" ")}
-                              >
-                                <div className={[
-                                  "flex h-11 w-11 items-center justify-center rounded-full text-[18px] font-black",
-                                  app.key === "whatsapp" ? "bg-green-100 text-green-700" : "",
-                                  app.key === "telegram" ? "bg-blue-100 text-blue-700" : "",
-                                  app.key === "gmail" ? "bg-red-100 text-red-700" : "",
-                                ].join(" ")}>
-                                  {app.key === "whatsapp" && "W"}
-                                  {app.key === "telegram" && "T"}
-                                  {app.key === "gmail" && "G"}
+                        return (
+                          <div key={app.key} className="rounded-[20px] border border-slate-200 bg-white overflow-hidden">
+                            {/* Header — always visible */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedApp(isExpanded ? null : app.key)}
+                              className="flex w-full items-center gap-3 p-4 text-left hover:bg-slate-50 transition"
+                            >
+                              <div className={[
+                                "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[20px] font-black",
+                                app.key === "whatsapp" ? "bg-green-100 text-green-700" : "",
+                                app.key === "telegram" ? "bg-blue-100 text-blue-700" : "",
+                                app.key === "gmail" ? "bg-red-100 text-red-700" : "",
+                              ].join(" ")}>
+                                {app.key === "whatsapp" && "W"}
+                                {app.key === "telegram" && "T"}
+                                {app.key === "gmail" && "G"}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[14px] font-extrabold text-slate-900">{app.label}</div>
+                                <div className="text-[11px] text-slate-500">
+                                  {count === 0 ? "No notifications" : `${count} notification${count > 1 ? "s" : ""}`}
                                 </div>
-                                <div className="mt-1.5 text-[11px] font-extrabold text-slate-900">{app.label}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
                                 {count > 0 && (
                                   <div className={[
-                                    "absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white",
+                                    "flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-[12px] font-black text-white",
                                     app.key === "whatsapp" ? "bg-green-600" : "",
                                     app.key === "telegram" ? "bg-blue-600" : "",
                                     app.key === "gmail" ? "bg-red-600" : "",
@@ -681,49 +679,77 @@ export default function DeviceDetailPage() {
                                     {count}
                                   </div>
                                 )}
-                              </button>
-                            );
-                          })}
-                        </div>
+                                <div className={[
+                                  "text-[16px] text-slate-400 transition-transform",
+                                  isExpanded ? "rotate-180" : "",
+                                ].join(" ")}>
+                                  ▾
+                                </div>
+                              </div>
+                            </button>
 
-                        {loadingAppNotifs ? (
-                          <div className="mt-3 text-center text-[12px] text-slate-500">Loading...</div>
-                        ) : filteredNotifs.length === 0 ? (
-                          <div className="mt-3 text-center text-[12px] text-slate-500">
-                            {selectedApp ? `No ${APP_FILTERS.find((f) => f.key === selectedApp)?.label || ""} notifications` : "No app notifications yet"}
-                          </div>
-                        ) : (
-                          <div className="mt-3 max-h-[400px] space-y-2 overflow-y-auto">
-                            {filteredNotifs.slice(0, 50).map((n: any) => {
-                              const pkg = safeString(n.packageName);
-                              const appName = safeString(n.appName) || pkg;
-                              const title = safeString(n.title);
-                              const text = safeString(n.bigText || n.text);
-                              const ts = getTimestamp(n);
-                              const isWA = pkg.includes("com.whatsapp");
-                              const isTG = pkg.includes("telegram");
-                              const isGM = pkg.includes("com.google.android.gm");
-                              const dotColor = isWA ? "bg-green-500" : isTG ? "bg-blue-500" : isGM ? "bg-red-500" : "bg-slate-400";
-
-                              return (
-                                <div key={n._id || `${ts}_${Math.random()}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                  <div className="flex items-start gap-2">
-                                    <div className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${dotColor}`} />
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="text-[11px] font-bold text-slate-500">{appName}</div>
-                                        <div className="shrink-0 text-[10px] text-slate-400">{ts ? new Date(ts).toLocaleString() : "-"}</div>
-                                      </div>
-                                      {title && <div className="mt-0.5 text-[12px] font-extrabold text-slate-900">{title}</div>}
-                                      {text && <div className="mt-0.5 break-words text-[11px] text-slate-700">{text}</div>}
-                                    </div>
+                            {/* Expanded — notification list */}
+                            {isExpanded && (
+                              <div className="border-t border-slate-100">
+                                <div className="flex items-center justify-between px-4 py-2 bg-slate-50">
+                                  <div className="text-[11px] text-slate-500">{count} message{count !== 1 ? "s" : ""}</div>
+                                  <div className="flex gap-2">
+                                    <button onClick={loadAppNotifications} className="h-7 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50" type="button">Refresh</button>
+                                    {count > 0 && (
+                                      <button
+                                        onClick={async () => {
+                                          if (!confirm(`Delete all ${app.label} notifications?`)) return;
+                                          setAppNotifs((prev) => prev.filter((n: any) => {
+                                            const pkg = safeString(n.packageName).toLowerCase();
+                                            if (app.key === "whatsapp") return !pkg.includes("com.whatsapp");
+                                            return pkg !== app.pkg;
+                                          }));
+                                        }}
+                                        className="h-7 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[10px] font-bold text-rose-700 hover:bg-rose-100"
+                                        type="button"
+                                      >
+                                        Clear {app.label}
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
-                              );
-                            })}
+
+                                {loadingAppNotifs ? (
+                                  <div className="px-4 py-6 text-center text-[12px] text-slate-400">Loading...</div>
+                                ) : appNotifsList.length === 0 ? (
+                                  <div className="px-4 py-6 text-center text-[12px] text-slate-400">No {app.label} notifications yet</div>
+                                ) : (
+                                  <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100">
+                                    {appNotifsList.slice(0, 40).map((n: any) => {
+                                      const title = safeString(n.title);
+                                      const text = safeString(n.bigText || n.text);
+                                      const ts = getTimestamp(n);
+                                      const borderLeft = app.key === "whatsapp" ? "border-l-green-500"
+                                        : app.key === "telegram" ? "border-l-blue-500"
+                                        : "border-l-red-500";
+
+                                      return (
+                                        <div key={n._id || `${ts}_${Math.random()}`} className={`px-4 py-3 border-l-[3px] ${borderLeft} hover:bg-slate-50 transition`}>
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                              {title && <div className="text-[12px] font-extrabold text-slate-900 truncate">{title}</div>}
+                                              {text && <div className="mt-0.5 text-[11px] text-slate-600 break-words line-clamp-3">{text}</div>}
+                                            </div>
+                                            <div className="shrink-0 text-[10px] text-slate-400 whitespace-nowrap">
+                                              {ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}
+                                            </div>
+                                          </div>
+                                          {ts ? <div className="mt-1 text-[9px] text-slate-400">{new Date(ts).toLocaleDateString()}</div> : null}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </SurfaceCard>
+                        );
+                      })}
 
                     </div>
                   </SurfaceCard>
